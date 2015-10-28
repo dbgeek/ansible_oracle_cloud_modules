@@ -6,7 +6,7 @@ DOCUMENTATION = '''
 module: oracle_cloud_dbpaas
 short_description: Manage Oracle Instance Services in the Oracle Cloud
 description:
-    - 
+    - Best way to use this module in task playbooks is to delegate_to: 127.0.0.1
 version_added: "0.1.0"
 options:
     identityDomain:
@@ -274,7 +274,7 @@ def createService(module,restSession):
     
     if not dbpaasExists(module, restSession):
         if module.check_mode:
-            message = 'Service %s successfully will be deleted' % (module.params["serviceName"])
+            message = 'Service %s successfully will be created' % (module.params["serviceName"])
             module.exit_json(msg=message, changed=True)
         else:
             url = 'https://dbaas.oraclecloud.com/paas/service/dbcs/api/v1.1/instances/' + module.params["identityDomain"]
@@ -284,6 +284,8 @@ def createService(module,restSession):
                 url = returnHeaders.headers['Location']
                 while dbpaasJobStatus(url,restSession) in ('InProgress','WaitingOnResource'):
                     time.sleep(5)
+                message = 'Service %s successfully created' % (module.params["serviceName"])
+                module.exit_json(msg=message, changed=True)                
             else:
                 module.fail_json(msg="Wrong ResponseCode")
     else:
