@@ -1,0 +1,64 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+try:
+    import requests
+    import time
+except ImportError:
+    requests_exists = False
+else:
+    requests_exists = True
+
+def getAuthToken(module):
+    
+    url = "https://seb3itdbgeek.storage.oraclecloud.com/auth/v1.0"
+    restSession = requests.Session()
+    restSession.headers.update({"X-Storage-User": "Storage-" + module.params["identityDomain"] + ":" + module.params["user"],"X-Storage-Pass": module.params["password"]})
+    
+    returnData = restSession.get(url)
+    
+    return returnData.headers["X-Auth-Token"]
+
+def createStorageContainer(module, restSession):
+    
+    url = "https://storage.us2.oraclecloud.com/v1/Storage-" + module.params["identityDomain"] + "/" + module.params["containerName"]
+    
+    returnHeaders = restSession.put(url)
+    
+    message = 'Storage Container %s successfully created' % (module.params["containerName"])
+    module.exit_json(msg=message, changed=True)
+
+def deleteStorageContainer(module, restSession):
+    
+    url = "https://storage.us2.oraclecloud.com/v1/Storage-" + module.params["identityDomain"] + "/" + module.params["containerName"]
+    
+    returnHeaders = restSession.delete(url)
+    
+    message = 'Storage Container %s successfully deleted' % (module.params["containerName"])
+    module.exit_json(msg=message, changed=True)
+
+def main():
+    msg = ['']
+    module = AnsibleModule(
+        argument_spec = dict(
+            identityDomain          = dict(required=True),
+            user                    = dict(required=True),
+            password                = dict(required=True),
+            state                   = dict(choices=["present","absent"]),
+            containerName           = dict(required=True),
+        ),
+        supports_check_mode=True
+    )
+
+    restSession = requests.Session()
+    restSession.headers.update({"X-Auth-Token": getAuthToken(module) })
+    
+    if module.params["state"] == 'present':
+        createStorageContainer(module, restSession)
+    elif module.params["state"] == 'absent':
+        deleteStorageContainer(module, restSession)
+    
+    
+from ansible.module_utils.basic import *
+if __name__ == '__main__':
+    main()
