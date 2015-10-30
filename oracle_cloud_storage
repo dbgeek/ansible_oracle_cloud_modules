@@ -1,6 +1,55 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+DOCUMENTATION = '''
+---
+module: oracle_cloud_storage
+short_description: Manage Create / Delete Containers in Oracle Storage Cloud Service
+description:
+    - Best way to use this module in task playbooks is to delegate_to: 127.0.0.1
+version_added: "0.1.0"
+options:
+    identityDomain:
+        description:
+            - Name of the identity domain housing the Database as a Service subscription or trial to which the request applies.
+        required: true
+        default:     
+    user:
+        description:
+            - 
+        required: true
+        default:
+    password:
+        description:
+            - 
+        required: true
+        default:    
+    state:
+        description:
+            - The intended state of the Oracle Cloud Instance
+                - present = Create Storage Container
+                - absent = Delete Storage Container
+        required: true
+        choices=["present","absent"]
+    containerName:
+        description:
+            - A string containing the name for containerName .
+        required: true
+        default:
+notes:
+    - required=True needs to be installed
+requirements: [ "request" ]
+author: Björn Ahl, bjorn.ahl@gmail.com, @TwittAhl
+'''
+
+EXAMPLES = '''
+# Create Contrainer in Storage Cloud
+oracle_cloud_storage: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password containerName: Oracle Cloud Service Name state: present
+
+# Delete Contrainer in Storage Cloud
+oracle_cloud_storage: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password containerName: Oracle Cloud Service Name state: absent
+'''
+
 try:
     import requests
     import time
