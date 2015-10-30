@@ -8,6 +8,15 @@ except ImportError:
     requests_exists = False
 else:
     requests_exists = True
+    
+def containerExists(module):
+    url = "https://storage.us2.oraclecloud.com/v1/Storage-" + module.params["identityDomain"]
+    returnData = requests.get(url)
+    
+    if returnData.text.find(module.params["identityDomain"]) == -1:
+        return False
+    else:
+        return True
 
 def getAuthToken(module):
     
@@ -21,21 +30,25 @@ def getAuthToken(module):
 
 def createStorageContainer(module, restSession):
     
-    url = "https://storage.us2.oraclecloud.com/v1/Storage-" + module.params["identityDomain"] + "/" + module.params["containerName"]
-    
-    returnHeaders = restSession.put(url)
-    
-    message = 'Storage Container %s successfully created' % (module.params["containerName"])
-    module.exit_json(msg=message, changed=True)
+    if not containerExists(module):
+        url = "https://storage.us2.oraclecloud.com/v1/Storage-" + module.params["identityDomain"] + "/" + module.params["containerName"]
+        returnHeaders = restSession.put(url)
+        message = 'Storage Container %s successfully created' % (module.params["containerName"])
+        module.exit_json(msg=message, changed=True)
+    else:
+        message = 'Storage Container %s already exists' % (module.params["containerName"])
+        module.exit_json(msg=message, changed=False)
 
 def deleteStorageContainer(module, restSession):
     
-    url = "https://storage.us2.oraclecloud.com/v1/Storage-" + module.params["identityDomain"] + "/" + module.params["containerName"]
-    
-    returnHeaders = restSession.delete(url)
-    
-    message = 'Storage Container %s successfully deleted' % (module.params["containerName"])
-    module.exit_json(msg=message, changed=True)
+    if containerExists(module):
+        url = "https://storage.us2.oraclecloud.com/v1/Storage-" + module.params["identityDomain"] + "/" + module.params["containerName"]
+        returnHeaders = restSession.delete(url)
+        message = 'Storage Container %s successfully deleted' % (module.params["containerName"])
+        module.exit_json(msg=message, changed=True)
+    else:
+        message = 'Storage Container %s not exists' % (module.params["containerName"])
+        module.exit_json(msg=message, changed=False)
 
 def main():
     msg = ['']
