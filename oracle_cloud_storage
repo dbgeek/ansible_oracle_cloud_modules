@@ -9,14 +9,14 @@ except ImportError:
 else:
     requests_exists = True
     
-def containerExists(module):
+def containerExists(module, restSession):
     url = "https://storage.us2.oraclecloud.com/v1/Storage-" + module.params["identityDomain"]
-    returnData = requests.get(url)
+    returnData = restSession.get(url)
     
-    if returnData.text.find(module.params["identityDomain"]) == -1:
-        return False
-    else:
+    if module.params["containerName"] in returnData.text:
         return True
+    else:
+        return False
 
 def getAuthToken(module):
     
@@ -30,7 +30,7 @@ def getAuthToken(module):
 
 def createStorageContainer(module, restSession):
     
-    if not containerExists(module):
+    if not containerExists(module, restSession):
         url = "https://storage.us2.oraclecloud.com/v1/Storage-" + module.params["identityDomain"] + "/" + module.params["containerName"]
         returnHeaders = restSession.put(url)
         message = 'Storage Container %s successfully created' % (module.params["containerName"])
@@ -41,7 +41,7 @@ def createStorageContainer(module, restSession):
 
 def deleteStorageContainer(module, restSession):
     
-    if containerExists(module):
+    if containerExists(module, restSession):
         url = "https://storage.us2.oraclecloud.com/v1/Storage-" + module.params["identityDomain"] + "/" + module.params["containerName"]
         returnHeaders = restSession.delete(url)
         message = 'Storage Container %s successfully deleted' % (module.params["containerName"])
