@@ -1,6 +1,7 @@
 # ansible_oracle_cloud_modules
 
 ## DOCUMENTATION
+<pre><code>
 module: oracle_cloud_dbpaas
 short_description: Manage Oracle Instance Services in the Oracle Cloud
 description:
@@ -64,8 +65,8 @@ options:
             - A string containing the database edition for the service instance:
                 - SE: Standard Edition
                 - EE: Enterprise Edition
-                - EE_HP–Enterprise Edition: High Performance
-                - EE_EP–Enterprise Edition: Extreme Performance
+                - EE_HP√êEnterprise Edition: High Performance
+                - EE_EP√êEnterprise Edition: Extreme Performance
         required: false
         default: "EE"
         choices=["SE","EE","EE_HP","EE_EP"]
@@ -145,29 +146,36 @@ options:
         required: false
         default: localhost
 
-    
+ </pre></code>   
 ## notes:
+<pre><code>
     - required=True needs to be installed
 requirements: [ "request" ]
-author: Björn Ahl, bjorn.ahl@gmail.com, @TwittAhl
-
+author: Bj√∂rn Ahl, bjorn.ahl@gmail.com, @TwittAhl
+</pre></code>
 
 ## EXAMPLES
 ### Stop VM in Oracle Cloud
+<pre><code>
 oracle_cloud_dbpaas: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password serviceName: Oracle Cloud Service Name state: stop
-
+</pre></code>
 ### start VM in Oracle Cloud
+<pre><code>
 oracle_cloud_dbpaas: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password serviceName: Oracle Cloud Service Name state: start
-
+</pre></code>
 ### restart VM in Oracle Cloud
+<pre><code>
 oracle_cloud_dbpaas: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password serviceName: Oracle Cloud Service Name state: restart
-
+</pre></code>
 ### Delete Cloud Service in Oracle Cloud (Service that you want to delete need to be stopped state)
+<pre><code>
 oracle_cloud_dbpaas: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password serviceName: Oracle Cloud Service Name state: absent
-
+</pre></code>
 ### Scale Up/Down Cloud Service
+<pre><code>
 oracle_cloud_dbpaas: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password serviceName: Oracle Cloud Service Name state: scale shape: oc5/oc6/oc1m/oc2m/oc3m..
-
+</pre></code>
 ### Create new Oracle Cloud Service
+<pre><code>
 oracle_cloud_dbpaas: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password serviceName: Oracle Cloud Service Name state: present serviceName: "vm1" level: PAAS subscriptionType: MONTHLY version: "12.1.0.2" edition: EE description: test01 shape: oc3 vmPublicKey: "/Compute-domain/user@test.se/host"  usableStorage: "30" adminPassword: "Pa55_word" sid: "cdb1"pdbName: "pdb1" backupDestination: "NONE"
-
+</pre></code>
