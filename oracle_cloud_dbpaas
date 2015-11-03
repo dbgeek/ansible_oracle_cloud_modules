@@ -375,7 +375,7 @@ def main():
     if module.params["state"] == "present":
         createService(module, restSession)
     elif module.params["state"] == "absent":
-        DeleteService(module, restSession)
+        deleteService(module, restSession)
     elif module.params["state"] in ("start", "stop", "restart"):
         changeLifecycleState(module, restSession)
     elif module.params["state"] == "scale":
