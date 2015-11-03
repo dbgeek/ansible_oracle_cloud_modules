@@ -23,7 +23,7 @@ options:
         required: true
         default:    
     state:
-        description:
+        description: 
             - The intended state of the Oracle Cloud Instance
                 - present = Create New Cloud Service
                 - absent = Delete Existen Cloud Service
