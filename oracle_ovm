@@ -176,24 +176,8 @@ author: Björn Ahl, bjorn.ahl@gmail.com, @TwittAhl
 '''
 
 EXAMPLES = '''
-# Stop VM in Oracle Cloud
-oracle_cloud_dbpaas: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password serviceName: Oracle Cloud Service Name state: stop
-
-# start VM in Oracle Cloud
-oracle_cloud_dbpaas: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password serviceName: Oracle Cloud Service Name state: start
-
-# restart VM in Oracle Cloud
-oracle_cloud_dbpaas: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password serviceName: Oracle Cloud Service Name state: restart
-
-# Delete Cloud Service in Oracle Cloud (Service that you want to delete need to be stopped state)
-oracle_cloud_dbpaas: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password serviceName: Oracle Cloud Service Name state: absent
-
-# Scale Up/Down Cloud Service
-oracle_cloud_dbpaas: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password serviceName: Oracle Cloud Service Name state: scale shape: oc5/oc6/oc1m/oc2m/oc3m..
-
-# Create new Oracle Cloud Service
-oracle_cloud_dbpaas: identityDomain: domain1 user: oracle_cloud_admin_user password: oracle_cloud_admin_password serviceName: Oracle Cloud Service Name state: present serviceName: "vm1" level: PAAS subscriptionType: MONTHLY version: "12.1.0.2" edition: EE description: test01 shape: oc3 vmPublicKey: "/Compute-domain/user@test.se/host"  usableStorage: "30" adminPassword: "Pa55_word" sid: "cdb1"pdbName: "pdb1" backupDestination: "NONE"
-
+# Create new VM
+oracle_ovm: ovmHostname: 192.168.1.100 ovmPort: 7002 user: admin password: Welcome1 vmName: vm state: present vmCloneDefinition: custvmoel7 serverPool: srvpool vmIpAdress: 192.168.1.188 vmGateway: 192.168.1.1 vmDnsServer: 192.168.1.1 vmRootPassword: oracle vmCloneDefinition: custvmoel7 memory: 4096 memoryLimit: 4096 cpuCount: 4 cpuCountLimit: 4 vmTemplate: OVM_OL7U1_x86_64_PVHVM
 '''
 
 
@@ -334,12 +318,23 @@ def getJobInfo(restSession, jobID, module):
     resultJobInfo = restSession.get(url)
     return json.loads(resultJobInfo.text)
     
-def startVm(restSession,module, VmId):
-
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}/start'.format(vmId=VmId, hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
-    startResult  = restSession.put(url)
-    jsonResultStart = json.loads(startResult.text)
-    waitModifyJob = waitForJob(jsonResultStart['id']['uri'],restSession, module)
+def startVm(restSession,module):
+    vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
+    
+    if vmInfo["vmRunState"] == 'STOPPED': 
+        url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}/start'.format(vmId=vmInfo['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+        startResult  = restSession.put(url)
+        jsonResultStart = json.loads(startResult.text)
+        waitModifyJob = waitForJob(jsonResultStart['id']['uri'],restSession, module)
+        
+def stopVm(restSession,module):
+    vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
+    
+    if vmInfo["vmRunState"] == 'RUNNING': 
+        url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}/stop'.format(vmId=vmInfo['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+        startResult  = restSession.put(url)
+        jsonResultStart = json.loads(startResult.text)
+        waitModifyJob = waitForJob(jsonResultStart['id']['uri'],restSession, module)        
                 
 def getVirtualDiskInfoFromvmDiskMappingId(restSession, module, VmDiskMappingId):
     url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/VmDiskMapping/{vmDiskMappingId}/VirtualDisk'.format(vmDiskMappingId=VmDiskMappingId,hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
@@ -363,9 +358,6 @@ def setNameForVirtualDisk(restSession, module, newName, virtualDiskInfo):
 def cloneVm(module,restSession):
     
     if not vmExists(module, restSession):
-        '''
-        0004fb000014000014feb8708c34fc0f
-        '''
         url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}/clone'.format(vmId=getIdFromName(restSession ,module,'Vm',module.params['vmTemplate'])['value'] ,hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
     #    module.exit_json(msg=json.dumps(url), status=False)
         payLoad={
@@ -393,7 +385,7 @@ def cloneVm(module,restSession):
             virtualDiskInfo = getVirtualDiskInfoFromvmDiskMappingId(restSession, module, obj['value'])
             kk = setNameForVirtualDisk(restSession, module, 'system_' + module.params['vmName'], virtualDiskInfo)
         
-        startVm(restSession, module, jsonVmInfo1['value'])
+        startVm(restSession, module)
         
         configVmAfterStartup(module, restSession)
         module.exit_json(msg='vm exists', changed=True)
@@ -467,19 +459,14 @@ def main():
     
     if module.params["state"] == "present":
         createService(module, restSession)
+    elif module.params["state"] == "start":
+        startVm(restSession,module)
+        module.exit_json(msg='vm started', changed=True)
+    elif module.params["state"] == "stop":
+        stopVm(restSession,module)
+        module.exit_json(msg='vm stopped', changed=True)        
     else:
         module.fail_json(msg="Wrong state")
-    '''
-    elif module.params["state"] == "absent":
-        DeleteService(module, restSession)
-    elif module.params["state"] in ("start", "stop", "restart"):
-        changeLifecycleState(module, restSession)
-    elif module.params["state"] == "scale":
-        scaleUpOrDownService(module, restSession)
-    
-    cloneVm(module,restSession)
-    '''
-        
     
 from ansible.module_utils.basic import *
 if __name__ == '__main__':
