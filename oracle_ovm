@@ -359,18 +359,20 @@ def getVirtualDiskByIdInfo(restSession, module, virtualDiskId):
     return virtualDiskJson
 
 def delVmDiskMapping(restSession, module, vmDiskMappingId):
-    vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession), restSession)['value']
+    vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
     url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{VmId}/VmDiskMapping/{VmDiskMappingId}'.format(VmId=vmInfo['id']['value'], VmDiskMappingId=vmDiskMappingId, hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
     
     delVmDiskMappingResult = restSession.delete(url)
-    delVmDiskMappingJson = json.loads(delVmDiskMapping.text)
+    delVmDiskMappingJson = json.loads(delVmDiskMappingResult.text)
     
-    waitModifyJob = waitForJob(delVmDiskMapping['id']['uri'],restSession, module)        
+    waitModifyJob = waitForJob(delVmDiskMappingJson['id']['uri'],restSession, module)        
 
 def delVirtualDisk(restSession, module, virtualDisk):
     #virtualDiskInfo = getVirtualDiskByIdInfo(restSession, module, virtualDiskId)
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk/{virtualDiskId}'.format(repositoryId=virtualDisk['repositoryId'], virtualDiskId=virtualDisk['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk/{virtualDiskId}'.format(repositoryId=virtualDisk['repositoryId']['value'], virtualDiskId=virtualDisk['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+    #module.exit_json(msg=url, changed=True)
     delVirtualDiskResult = restSession.delete(url)
+    #module.exit_json(msg=delVirtualDiskResult.text, changed=True)
     delVirtualDiskJson = json.loads(delVirtualDiskResult.text)
     
     waitModifyJob = waitForJob(delVirtualDiskJson['id']['uri'],restSession, module)        
@@ -449,7 +451,8 @@ def configVm(module, restSession,newVmId):
 def deleteVm(module, restSession):
     
     if vmExists(module, restSession):
-        vmInfo = getVmInfoByName(module, restSession)
+        vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'],restSession)
+        #module.exit_json(msg=json.dumps(vmInfo), changed=True)
         if vmInfo['vmRunState'] == 'STOPPED':
             # First Remove DiskMappingToVm
             # Second Remove VirtalDisk
@@ -457,16 +460,20 @@ def deleteVm(module, restSession):
                 vmDiskInfo = getVirtualDiskInfoFromvmDiskMappingId(restSession, module, obj['value'])
                 #virtualDiskIds.append(vmDiskInfo)
                 delVmDiskMapping(restSession, module, obj['value'])
-                delVirtualDisk(restSession, module, vmDiskInfo['value'])
+                delVirtualDisk(restSession, module, vmDiskInfo)
                 
             # When Diskmapping & Disk are removed we can delete vm
             
-            url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}'.format(vmId=jsonVmInfo['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+            url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}'.format(vmId=vmInfo['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
             
             resultDeleteVm = restSession.delete(url)
             jsonresultDeleteVm = json.loads(resultDeleteVm.text)
-            waitModifyJob = waitForJob(resultDeleteVm['id']['uri'],restSession, module)
-    
+            waitModifyJob = waitForJob(jsonresultDeleteVm['id']['uri'],restSession, module)
+            module.exit_json(msg="Vm deleted", changed=True)
+        else:
+            module.exit_json(msg="Vm not stopped", changed=False)
+    else:
+        module.exit_json(msg="Vm not exists", changed=False)
 def main():
     msg = ['']
     module = AnsibleModule(
@@ -513,6 +520,8 @@ def main():
     
     if module.params["state"] == "present":
         cloneVm(module, restSession)
+    if module.params["state"] == "absent":
+        deleteVm(module, restSession)
     elif module.params["state"] == "start":
         startVm(restSession,module)
         module.exit_json(msg='vm started', changed=True)
