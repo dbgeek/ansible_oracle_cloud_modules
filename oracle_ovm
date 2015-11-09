@@ -350,6 +350,30 @@ def getVmDiskMappingInfo(restSession, module, vmDiskMappingId):
     
     return vmDiskMappingJson
 
+def getVirtualDiskByIdInfo(restSession, module, virtualDiskId):
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/VirtualDisk/{VirtualDiskId}'.format(VirtualDiskId=virtualDiskId, hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+    
+    virtualDiskResult = restSession.get(url)
+    virtualDiskJson = json.loads(virtualDiskResult.text)
+    
+    return virtualDiskJson
+
+def delVmDiskMapping(restSession, module, vmDiskMappingId):
+    vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession), restSession)['value']
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{VmId}/VmDiskMapping/{VmDiskMappingId}'.format(VmId=vmInfo['id']['value'], VmDiskMappingId=vmDiskMappingId, hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+    
+    delVmDiskMappingResult = restSession.delete(url)
+    delVmDiskMappingJson = json.loads(delVmDiskMapping.text)
+    
+    waitModifyJob = waitForJob(delVmDiskMapping['id']['uri'],restSession, module)        
+
+def delVirtualDisk(restSession, module, virtualDisk):
+    #virtualDiskInfo = getVirtualDiskByIdInfo(restSession, module, virtualDiskId)
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk/{virtualDiskId}'.format(repositoryId=virtualDisk['repositoryId'], virtualDiskId=virtualDisk['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+    delVirtualDiskResult = restSession.delete(url)
+    delVirtualDiskJson = json.loads(delVirtualDiskResult.text)
+    
+    waitModifyJob = waitForJob(delVirtualDiskJson['id']['uri'],restSession, module)        
 
 def setNameForVirtualDisk(restSession, module, newName, virtualDiskInfo):
     data = {"id":{
@@ -421,6 +445,25 @@ def configVm(module, restSession,newVmId):
     resultModifyVm  = restSession.put(url, data=json.dumps(data))
     jsonResultModifyVm = json.loads(resultModifyVm.text)
     waitModifyJob = waitForJob(jsonResultModifyVm['id']['uri'],restSession, module)
+
+def deleteVm(module, restSession):
+    
+    vmInfo = getVmInfoByName(module, restSession)
+    # First Remove DiskMappingToVm
+    # Second Remove VirtalDisk
+    for obj in vmInfo["vmDiskMappingIds"]:
+        vmDiskInfo = getVirtualDiskInfoFromvmDiskMappingId(restSession, module, obj['value'])
+        #virtualDiskIds.append(vmDiskInfo)
+        delVmDiskMapping(restSession, module, obj['value'])
+        delVirtualDisk(restSession, module, vmDiskInfo['value'])
+        
+    # When Diskmapping & Disk are removed we can delete vm
+    
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}'.format(vmId=jsonVmInfo['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+    
+    resultDeleteVm = restSession.delete(url)
+    jsonresultDeleteVm = json.loads(resultDeleteVm.text)
+    waitModifyJob = waitForJob(resultDeleteVm['id']['uri'],restSession, module)
     
 def main():
     msg = ['']
@@ -467,7 +510,7 @@ def main():
     restSession.verify=False
     
     if module.params["state"] == "present":
-        createService(module, restSession)
+        cloneVm(module, restSession)
     elif module.params["state"] == "start":
         startVm(restSession,module)
         module.exit_json(msg='vm started', changed=True)
