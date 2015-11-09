@@ -448,22 +448,24 @@ def configVm(module, restSession,newVmId):
 
 def deleteVm(module, restSession):
     
-    vmInfo = getVmInfoByName(module, restSession)
-    # First Remove DiskMappingToVm
-    # Second Remove VirtalDisk
-    for obj in vmInfo["vmDiskMappingIds"]:
-        vmDiskInfo = getVirtualDiskInfoFromvmDiskMappingId(restSession, module, obj['value'])
-        #virtualDiskIds.append(vmDiskInfo)
-        delVmDiskMapping(restSession, module, obj['value'])
-        delVirtualDisk(restSession, module, vmDiskInfo['value'])
-        
-    # When Diskmapping & Disk are removed we can delete vm
-    
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}'.format(vmId=jsonVmInfo['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
-    
-    resultDeleteVm = restSession.delete(url)
-    jsonresultDeleteVm = json.loads(resultDeleteVm.text)
-    waitModifyJob = waitForJob(resultDeleteVm['id']['uri'],restSession, module)
+    if vmExists(module, restSession):
+        vmInfo = getVmInfoByName(module, restSession)
+        if vmInfo['vmRunState'] == 'STOPPED':
+            # First Remove DiskMappingToVm
+            # Second Remove VirtalDisk
+            for obj in vmInfo["vmDiskMappingIds"]:
+                vmDiskInfo = getVirtualDiskInfoFromvmDiskMappingId(restSession, module, obj['value'])
+                #virtualDiskIds.append(vmDiskInfo)
+                delVmDiskMapping(restSession, module, obj['value'])
+                delVirtualDisk(restSession, module, vmDiskInfo['value'])
+                
+            # When Diskmapping & Disk are removed we can delete vm
+            
+            url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}'.format(vmId=jsonVmInfo['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+            
+            resultDeleteVm = restSession.delete(url)
+            jsonresultDeleteVm = json.loads(resultDeleteVm.text)
+            waitModifyJob = waitForJob(resultDeleteVm['id']['uri'],restSession, module)
     
 def main():
     msg = ['']
