@@ -340,7 +340,16 @@ def getVirtualDiskInfoFromvmDiskMappingId(restSession, module, VmDiskMappingId):
     url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/VmDiskMapping/{vmDiskMappingId}/VirtualDisk'.format(vmDiskMappingId=VmDiskMappingId,hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
     virtualDiskInfo = restSession.get(url)
     
-    return json.loads(virtualDiskInfo.text)                
+    return json.loads(virtualDiskInfo.text)
+
+def getVmDiskMappingInfo(restSession, module, vmDiskMappingId):
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/VmDiskMapping/{VmDiskMappingId}'.format(VmDiskMappingId=vmDiskMappingId, hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+    
+    vmDiskMappingResult = restSession.get(url)
+    vmDiskMappingJson = json.loads(vmDiskMappingResult.text)
+    
+    return vmDiskMappingJson
+
 
 def setNameForVirtualDisk(restSession, module, newName, virtualDiskInfo):
     data = {"id":{
