@@ -9,23 +9,22 @@ module: oracle_cloud_dbpaas
 short_description: Manage VM:s in Oracle Virtual Manager 3.3
 description:
     - Best way to use this module in task playbooks is to delegate_to: 127.0.0.1
-version_added: "0.0.1"
+version_added: "0.0.2"
 options:
     ovmHostname:
         description:
-            - 
+            - Hostname/Ipadress to OVM host
         required: true
-        default:
     ovmPort:
         description:
-            - 
+            - Port that OVM listen on
         required: true
-        default:             
+        default: 7002
     user:
         description:
-            - 
+            - Username for logon to the OVM Web Gui
         required: true
-        default:
+        default: admin
     password:
         description:
             - 
@@ -44,39 +43,28 @@ options:
         choices=["present","absent","start", "stop", "restart","scale"]
     vmName:
         description:
-            - 
+            - Name on VM:en in OVM
         required: true
-        default:
     bootOrder
         description:
-            - 
+            - The ordered list of boot devices to use when booting the Vm.
         required: true
-        default:
     cpuCount
        description:
-            - 
-        required: true
-        default:            
+            - The number of CPUs assigned to the Vm. The CPU count limit value will be increased if this value exceeds it. See #getCpuCountLimit().
+        default:
     cpuCountLimit
        description:
-            - 
-        required: true
-        default:
+            - The maximum number of CPUs that can be allocated to the Vm.
     cpuPriority
        description:
-            - 
-        required: true
-        default:
+            - The CPU priority value for scheduling. It can be an integer from 1 to 100 with 100 being the highest priority and 1 the lowest.
     cpuUtilizationCap
        description:
-            - 
-        required: true
-        default:
+            - The maximum CPU utilization value, which is used by the Xen credit scheduler. Valid values are from 0 to 100; default is 100. Any value less than 0 will not be allowed.
     highAvailability
        description:
-            - 
-        required: true
-        default:
+            - The Vm high availability flag. If set to true, this indicates to the ServerPool master that the Vm should be restarted on a new Server in the ServerPool in the event that the Server that it is currently on stops.
     hugePagesEnabled
        description:
             - 
@@ -84,89 +72,53 @@ options:
         default:
     keymapName
        description:
-            - 
-        required: true
-        default:
+            - The name of the keymap for the Vm. If a keymap has not been specified for the Vm, this will be the ServerPool's keymap. If the Vm is not associated with a ServerPool, this will be the OVM Manager's default keymap.
     memory
        description:
-            - 
-        required: true
-        default:
+            - The amount of memory in MB which the Vm needs to run.
     memoryLimit
        description:
-            - 
-        required: true
-        default:
+            - The maximum amount of memory in MB that the Vm will be allowed to use. This is the upper limit that the memory can be adjusted to when the Vm is running. By default, it is the same as the Vm memory
     networkInstallPath
        description:
-            - 
-        required: true
-        default:
+            - The path to install PV (paravirtualized) guests over the network. The format of the path in the form of:
     osType
        description:
-            - 
-        required: true
-        default:
+            - The operating system type in use by the Vm. The list of supported operating system types can be retrieved by calling OvmWsApi#vmGetSupportedOsTypes() or the corresponding REST methods.
     serverId
        description:
-            - 
-        required: true
-        default:
+            - The id of the Server to which the Vm is assigned. This value is read-only. The Vm's Server id should be modified by calling 
     vmDomainType
        description:
-            - 
-        required: true
-        default:
+            - The VmDomainType of the Vm.
     vmMouseType
        description:
-            - 
-        required: true
-        default:
-    vmRunState
-       description:
-            - 
-        required: true
-        default:
+            - The type of mouse in use by the Vm.
     vmStartPolicy
        description:
-            - 
-        required: true
-        default:
+            - The policy that will be used to start the Vm. This value will override the value of the VmStartPolicy in the ServerPool to which the Vm belongs.
     vmIpAdress
-       description:
+       description: Ipadress to configure the vmtemplate
             - 
-        required: true
-        default:
     vmGateway
        description:
-            - 
-        required: true
-        default:
+            - Gate to configure the vmtemplate
     vmDnsServer
        description:
-            - 
-        required: true
-        default:
+            - DNS Server to configure the vmtemplate
     vmRootPassword
        description:
-            - 
-        required: true
-        default:
+            - Root password to configure the vmtemplate
     vmCloneDefinition
        description:
-            - 
-        required: true
-        default:
+            - Which CloneDefinition that should be use
     vmTemplate
        description:
-            - 
-        required: true
-        default:
+            - Name of VmTemplate that should be cloned
     serverPool
        description:
-            - 
-        required: true
-        default:
+            - Which ServerPool
+
 
     
 notes:
@@ -479,8 +431,8 @@ def main():
     module = AnsibleModule(
         argument_spec = dict(
             ovmHostname		        = dict(required=True),
-            ovmPort					= dict(required=True),
-            user                    = dict(required=True),
+            ovmPort					= dict(default=7002, required=True),
+            user                    = dict(default="admin", required=True),
             password                = dict(required=True),
             state                   = dict(choices=["present","absent","start", "stop", "restart","scale"]),
             vmName		            = dict(required=True),
@@ -500,7 +452,6 @@ def main():
             serverId                = dict(required=False),
             vmDomainType            = dict(required=False),
             vmMouseType             = dict(required=False),
-            vmRunState              = dict(required=False),
             vmStartPolicy           = dict(required=False),
             vmIpAdress              = dict(required=False),
             vmGateway               = dict(required=False),
