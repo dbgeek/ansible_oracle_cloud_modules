@@ -147,6 +147,16 @@ def createVmDiskMapping(module, restSession):
         waitModifyJob = waitForJob(createVmdDiskMappingJson['id']['uri'],restSession, module)
     else:
          module.exit_json(msg='mapping Exists', changed=False)
+
+def delVmDiskMapping(restSession, module, vmDiskMappingId):
+    vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{VmId}/VmDiskMapping/{VmDiskMappingId}'.format(VmId=vmInfo['id']['value'], VmDiskMappingId=vmDiskMappingId, hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+    
+    delVmDiskMappingResult = restSession.delete(url)
+    delVmDiskMappingJson = json.loads(delVmDiskMappingResult.text)
+    
+    waitModifyJob = waitForJob(delVmDiskMappingJson['id']['uri'],restSession, module)
+    
 def main():
     msg = ['']
     module = AnsibleModule(
