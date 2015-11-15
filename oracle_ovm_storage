@@ -68,6 +68,17 @@ def getVirtualDiskByIdInfo(restSession, module, virtualDiskId):
     
     return virtualDiskJson
 
+def getVmDiskMapping(module, restSession):
+
+    vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}/VmDiskMapping'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"],vmId=vmInfo['id']['value'])
+    vmDiskMappingResult = restSession.get(url)
+    
+    for obj in vmDiskMappingResult.json():
+    	if 'virtualDiskId' in obj.keys():
+            if obj['virtualDiskId']['name']==module.params['virtualDiskName']:
+                return obj['virtualDiskId']['name']
+
 def virtualDiskExists(module, restSession):
     url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/VirtualDisk/id'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
     vmResults = restSession.get(url)
@@ -156,6 +167,12 @@ def delVmDiskMapping(restSession, module, vmDiskMappingId):
     delVmDiskMappingJson = json.loads(delVmDiskMappingResult.text)
     
     waitModifyJob = waitForJob(delVmDiskMappingJson['id']['uri'],restSession, module)
+
+def delVmDiskMappingFromVm(restSession, module):
+    vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
+    virtualDiskInfo = getVirtualDiskByIdInfo(restSession, module, getIdFromName(restSession ,module,'VirtualDisk',module.params["virtualDiskName"])['value'])
+    
+    
     
 def main():
     msg = ['']
@@ -165,7 +182,7 @@ def main():
             ovmPort					= dict(required=True),
             user                    = dict(required=True),
             password                = dict(required=True),
-            state                   = dict(choices=["present","absent","start", "stop", "restart","mappDisk"]),
+            state                   = dict(choices=["present","absent","start", "stop", "restart","mappDisk","removeMappDisk"]),
             repositoryName          = dict(required=False),
             description             = dict(required=False),
             virtualDiskName         = dict(required=False),
