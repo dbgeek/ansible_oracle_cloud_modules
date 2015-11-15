@@ -5,7 +5,7 @@ DOCUMENTATION = '''
 
 
 ---
-module: oracle_cloud_dbpaas
+module: oracle_ovm
 short_description: Manage VM:s in Oracle Virtual Manager 3.3
 description:
     - Best way to use this module in task playbooks is to delegate_to: 127.0.0.1
