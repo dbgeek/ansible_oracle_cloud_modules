@@ -1,6 +1,85 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+DOCUMENTATION = '''
+
+
+---
+module: oracle_ovm_module
+short_description: Manage Virtual Storage for VM:s in Oracle Virtual Manager 3.3
+description:
+    - Best way to use this module in task playbooks is to delegate_to: 127.0.0.1
+version_added: "0.0.1"
+options:
+    ovmHostname:
+        description:
+            - Hostname/Ipadress to OVM host
+        required: true
+    ovmPort
+        description:
+            - Port that OVM listen on
+        required: true    
+    user
+        description:
+            - Username for logon to the OVM Web Gui
+        required: true
+    password
+        description:
+            - Hostname/Ipadress to OVM host
+        required: true
+    state
+        description:
+            - The intended state of the Oracle Cloud Instance
+                - present = Create New Cloud Service
+                - absent = Delete Existen Cloud Service
+                - start = Start Existen Cloud Service VM
+                - stop  = Stop Existen Cloud Service VM
+                - restart = Restart Existen Cloud Service VM
+                - scale = Scale Up or Down Cloud Service VM
+        required: true
+        choices=["present","absent","start", "stop", "restart","scale"]
+    repositoryName
+        description:
+            - Virtdisk storage repository
+        required: false    
+    virtualDiskName
+        description:
+            - Name for virtualdisk
+        required: False    
+    virtualDiskSize
+        description:
+            - Size of the disk in bytes. If this is a sparse image, this number does not reflect the actual size of the image on disk, but rather the maximum size of the file. For a non-sparse image this is the same as the size of the file on disk.
+        required: False    
+    virtualSparse
+        description:
+            - parse Allocation or Non-sparse Allocation. Sparse Allocation creates a sparse disk, so the size of the disk is initially small and increases as it is used. Sparse allocation is faster than using Non-Sparse Allocation when creating a virtual machine. Non-Sparse Allocation creates the entire disk when the virtual machine is created, and so is slower than creating a sparse disk
+        required: False    
+    vmName
+        description:
+            - Name for the Vm
+        required: true    
+    vmDiskMappingSlott
+        description:
+            - Fix Disk slott in the vm
+        required: true    
+        
+'''
+
+EXAMPLES = '''
+
+# Create Virtual Disk
+oracle_ovm_storage: ovmHostname: 192.168.1.100 ovmPort: 7002 user: admin password: Welcome1 state: present virtualDiskName: KallEDisk repositoryName: ssd_1000 virtualDiskSize: 2 virtualSparse: False
+
+# Remove Virtual Disk from a repository
+oracle_ovm_storage: ovmHostname: 192.168.1.100 ovmPort: 7002 user: admin password: Welcome1 state: absent vmName: db1 virtualDiskName: db1_u01 repositoryName: ssd_1000
+
+# Add mapping between VM and Virtualdisk 
+oracle_ovm_storage: ovmHostname: 192.168.1.100 ovmPort: 7002 user: admin password: Welcome1 state: mappDisk vmName: db1 description: "dddddd" virtualDiskName: db1_u01 vmDiskMappingSlott: 6
+
+# Remove mapping between vm and disk
+oracle_ovm_storage: ovmHostname: 192.168.1.100 ovmPort: 7002 user: admin password: Welcome1 state: removeMappDisk vmName: db1 virtualDiskName: db1_u01 repositoryName: ssd_1000
+
+'''
 try:
     import requests
     requests.packages.urllib3.disable_warnings()
