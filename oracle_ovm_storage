@@ -91,13 +91,13 @@ def virtualDiskExists(module, restSession):
     return False
     
 def virtualDiskInRepositoryExists(module, restSession):
-    repositoryID = getIdFromName(restSession ,module,'Repository',module.params["repositoryName"]):
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"],repositoryId=repositoryID)
+    repositoryID = getIdFromName(restSession ,module,'Repository',module.params["repositoryName"])
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"],repositoryId=repositoryID['value'])
     vmResults = restSession.get(url)
     
     for obj in vmResults.json():
     	if 'id' in obj.keys():
-            if obj['id]['name']==module.params['virtualDiskName']:
+            if obj['id']['name']==module.params['virtualDiskName']:
                 return True
 
     return False    
@@ -205,7 +205,7 @@ def delVmDiskMappingFromVm(restSession, module):
 
 def delVirtualDisk(restSession, module):
     virtualDiskInfo = getVirtualDiskByIdInfo(restSession, module, getIdFromName(restSession ,module,'VirtualDisk',module.params["virtualDiskName"])['value'])
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk/{virtualDiskId}'.format(repositoryId=virtualDisk['repositoryId']['value'], virtualDiskId=virtualDiskInfo['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk/{virtualDiskId}'.format(repositoryId=virtualDiskInfo['repositoryId']['value'], virtualDiskId=virtualDiskInfo['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
     delVirtualDiskResult = restSession.delete(url)
     delVirtualDiskJson = json.loads(delVirtualDiskResult.text)
     
@@ -214,7 +214,13 @@ def delVirtualDisk(restSession, module):
 def delVirtualDiskInRepository(restSession, module):
     
     if virtualDiskInRepositoryExists(module, restSession):
-        delVirtualDisk(restSession, module):
+        if not virtualDiskHaveMappings(module, restSession):
+            delVirtualDisk(restSession, module)
+            module.exit_json(msg='VirtualDisk in Repo removed', changed=True)
+        else:
+            module.exit_json(msg='VirtualDisk in Repo Still Have Mapping', changed=False)
+    else:
+        module.exit_json(msg='VirtualDisk in Repo not exists', changed=False)
     
 def main():
     msg = ['']
@@ -224,7 +230,7 @@ def main():
             ovmPort					= dict(required=True),
             user                    = dict(required=True),
             password                = dict(required=True),
-            state                   = dict(choices=["present","absent","start", "stop", "restart","mappDisk","removeMappDisk"]),
+            state                   = dict(choices=["present","absent","mappDisk","removeMappDisk"]),
             repositoryName          = dict(required=False),
             description             = dict(required=False),
             virtualDiskName         = dict(required=False),
@@ -248,8 +254,8 @@ def main():
         module.exit_json(msg='vmDisk Created', changed=True)
     elif module.params["state"] == "removeMappDisk":
         delVmDiskMappingFromVm(restSession, module)
-    elif module.params["state"] == "stop":
-        null
+    elif module.params["state"] == "absent":
+        delVirtualDiskInRepository(restSession, module)
     else:
         module.fail_json(msg="Wrong state")
     
