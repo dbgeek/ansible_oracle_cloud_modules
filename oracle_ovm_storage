@@ -68,7 +68,7 @@ def getVirtualDiskByIdInfo(restSession, module, virtualDiskId):
     
     return virtualDiskJson
 
-def getVmDiskMapping(module, restSession):
+def getVmDiskMappingFromVm(module, restSession):
 
     vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
     url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}/VmDiskMapping'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"],vmId=vmInfo['id']['value'])
@@ -77,7 +77,7 @@ def getVmDiskMapping(module, restSession):
     for obj in vmDiskMappingResult.json():
     	if 'virtualDiskId' in obj.keys():
             if obj['virtualDiskId']['name']==module.params['virtualDiskName']:
-                return obj['virtualDiskId']['name']
+                return obj
 
 def virtualDiskExists(module, restSession):
     url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/VirtualDisk/id'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
@@ -171,7 +171,16 @@ def delVmDiskMapping(restSession, module, vmDiskMappingId):
 def delVmDiskMappingFromVm(restSession, module):
     vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
     virtualDiskInfo = getVirtualDiskByIdInfo(restSession, module, getIdFromName(restSession ,module,'VirtualDisk',module.params["virtualDiskName"])['value'])
+    virtuelDiskMappInfo = getVmDiskMappingFromVm(module, restSession)
     
+    if virtualDiskExists(module, restSession):
+        if vmDiskMappingExists(module, restSession):
+            delVmDiskMapping(restSession, module, virtuelDiskMappInfo['id']['value'])
+            module.exit_json(msg='virtualdiskmapping removed', changed=True)
+        else:
+            module.exit_json(msg='VirtualDisk MApping on Vm not Exists', changed=False)
+    else:
+        module.exit_json(msg='VirtualDisk not Exists', changed=False)
     
     
 def main():
@@ -204,8 +213,8 @@ def main():
     if module.params["state"] == "present":
         createVirtualDisk(module, restSession)
         module.exit_json(msg='vmDisk Created', changed=True)
-    elif module.params["state"] == "start":
-        null
+    elif module.params["state"] == "removeMappDisk":
+        delVmDiskMappingFromVm(restSession, module)
     elif module.params["state"] == "stop":
         null
     else:
