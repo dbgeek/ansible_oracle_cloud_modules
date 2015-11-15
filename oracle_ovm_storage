@@ -90,6 +90,18 @@ def virtualDiskExists(module, restSession):
 
     return False
     
+def virtualDiskInRepositoryExists(module, restSession):
+    repositoryID = getIdFromName(restSession ,module,'Repository',module.params["repositoryName"]):
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"],repositoryId=repositoryID)
+    vmResults = restSession.get(url)
+    
+    for obj in vmResults.json():
+    	if 'id' in obj.keys():
+            if obj['id]['name']==module.params['virtualDiskName']:
+                return True
+
+    return False    
+    
 def vmDiskMappingExists(module, restSession):
 
     vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
