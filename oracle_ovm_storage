@@ -101,6 +101,16 @@ def virtualDiskInRepositoryExists(module, restSession):
                 return True
 
     return False    
+ 
+def virtualDiskHaveMappings(module, restSession):
+    virtualDiskInfo = getVirtualDiskByIdInfo(restSession, module, getIdFromName(restSession ,module,'VirtualDisk',module.params["virtualDiskName"])['value'])
+    virtualDiskMappings = virtualDiskInfo['vmDiskMappingIds']
+    
+    if len(virtualDiskMappings) >=1:
+        return True
+    else:
+        return False
+    
     
 def vmDiskMappingExists(module, restSession):
 
@@ -193,14 +203,18 @@ def delVmDiskMappingFromVm(restSession, module):
     else:
         module.exit_json(msg='VirtualDisk not Exists', changed=False)
 
-def delVirtualDisk(restSession, module, virtualDisk):
+def delVirtualDisk(restSession, module):
     virtualDiskInfo = getVirtualDiskByIdInfo(restSession, module, getIdFromName(restSession ,module,'VirtualDisk',module.params["virtualDiskName"])['value'])
     url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk/{virtualDiskId}'.format(repositoryId=virtualDisk['repositoryId']['value'], virtualDiskId=virtualDiskInfo['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
     delVirtualDiskResult = restSession.delete(url)
     delVirtualDiskJson = json.loads(delVirtualDiskResult.text)
     
-    waitModifyJob = waitForJob(delVirtualDiskJson['id']['uri'],restSession, module)                
+    waitModifyJob = waitForJob(delVirtualDiskJson['id']['uri'],restSession, module)
+
+def delVirtualDiskInRepository(restSession, module):
     
+    if virtualDiskInRepositoryExists(module, restSession):
+        delVirtualDisk(restSession, module):
     
 def main():
     msg = ['']
