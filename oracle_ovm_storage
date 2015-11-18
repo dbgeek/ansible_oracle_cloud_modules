@@ -82,6 +82,7 @@ oracle_ovm_storage: ovmHostname: 192.168.1.100 ovmPort: 7002 user: admin passwor
 '''
 try:
     import requests
+
     requests.packages.urllib3.disable_warnings()
     import time
     import json
@@ -92,255 +93,291 @@ else:
 """Return jobStatus of job send to Oracle Cloud
 """
 
-def getVmInfoById(module,VmId, restSession):
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}'.format(vmId=VmId, hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+
+def get_vm_info_by_id(module, VmId, restSession):
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}'.format(vmId=VmId,
+                                                                             hostName=module.params["ovmHostname"],
+                                                                             portNr=module.params["ovmPort"])
     vmInfo = restSession.get(url)
     vmInfoJson = json.loads(vmInfo.text)
     return vmInfoJson
-    
-def getVmInfoByName(module, restSession):
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/id'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+
+
+def get_vm_info_by_name(module, restSession):
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/id'.format(hostName=module.params["ovmHostname"],
+                                                                         portNr=module.params["ovmPort"])
     vmResults = restSession.get(url)
-    
+
     for obj in vmResults.json():
-    	if 'name' in obj.keys():
-            if obj['name']==module.params['vmName']:
+        if 'name' in obj.keys():
+            if obj['name'] == module.params['vmName']:
                 return obj
 
-def waitForJob(joburi,restSession, module):
-        while True:
-            time.sleep(1)
-            r=restSession.get(joburi)
-            job=r.json()
-            if job['summaryDone']:
-                print '{name}: {runState}'.format(name=job['name'], runState=job['jobRunState'])
-                if job['jobRunState'].upper() == 'FAILURE':
-                    raise Exception('Job failed: {error}'.format(error=job['error']))
-                elif job['jobRunState'].upper() == 'SUCCESS':
-                    if 'resultId' in job:
-                        return job['resultId']
-                    break
-                else:
-                    break
 
-def getJobInfo(restSession, jobID, module):
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Job/{jobId}'.format(jobId=jobID,hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
-    
+def wait_for_job(joburi, restSession, module):
+    while True:
+        time.sleep(1)
+        r = restSession.get(joburi)
+        job = r.json()
+        if job['summaryDone']:
+            print '{name}: {runState}'.format(name=job['name'], runState=job['jobRunState'])
+            if job['jobRunState'].upper() == 'FAILURE':
+                raise Exception('Job failed: {error}'.format(error=job['error']))
+            elif job['jobRunState'].upper() == 'SUCCESS':
+                if 'resultId' in job:
+                    return job['resultId']
+                break
+            else:
+                break
+
+
+def get_job_info(restSession, jobID, module):
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Job/{jobId}'.format(jobId=jobID,
+                                                                               hostName=module.params["ovmHostname"],
+                                                                               portNr=module.params["ovmPort"])
+
     resultJobInfo = restSession.get(url)
-    return json.loads(resultJobInfo.text)                    
-    
-def getIdFromName(restSession ,module,resource,obj_name):
-        baseUri = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
-        uri=baseUri+'/'+resource+'/id'
-        r=restSession.get(uri)
-        for obj in r.json():
-           if 'name' in obj.keys():
-            if obj['name']==obj_name:
-                return obj
-        raise Exception('Failed to find id for {name}'.format(name=obj_name))
+    return json.loads(resultJobInfo.text)
 
-def getVirtualDiskByIdInfo(restSession, module, virtualDiskId):
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/VirtualDisk/{VirtualDiskId}'.format(VirtualDiskId=virtualDiskId, hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
-    
+
+def get_id_from_name(restSession, module, resource, obj_name):
+    baseUri = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest'.format(hostName=module.params["ovmHostname"],
+                                                                       portNr=module.params["ovmPort"])
+    uri = baseUri + '/' + resource + '/id'
+    r = restSession.get(uri)
+    for obj in r.json():
+        if 'name' in obj.keys():
+            if obj['name'] == obj_name:
+                return obj
+    raise Exception('Failed to find id for {name}'.format(name=obj_name))
+
+
+def get_virtual_disk_by_id_info(restSession, module, virtualDiskId):
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/VirtualDisk/{VirtualDiskId}'.format(
+        VirtualDiskId=virtualDiskId, hostName=module.params["ovmHostname"], portNr=module.params["ovmPort"])
+
     virtualDiskResult = restSession.get(url)
     virtualDiskJson = json.loads(virtualDiskResult.text)
-    
+
     return virtualDiskJson
 
-def getVmDiskMappingFromVm(module, restSession):
 
-    vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}/VmDiskMapping'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"],vmId=vmInfo['id']['value'])
+def get_vm_disk_mapping_from_vm(module, restSession):
+    vmInfo = get_vm_info_by_id(module, get_vm_info_by_name(module, restSession)['value'], restSession)
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}/VmDiskMapping'.format(
+        hostName=module.params["ovmHostname"], portNr=module.params["ovmPort"], vmId=vmInfo['id']['value'])
     vmDiskMappingResult = restSession.get(url)
-    
+
     for obj in vmDiskMappingResult.json():
-    	if 'virtualDiskId' in obj.keys():
-            if obj['virtualDiskId']['name']==module.params['virtualDiskName']:
+        if 'virtualDiskId' in obj.keys():
+            if obj['virtualDiskId']['name'] == module.params['virtualDiskName']:
                 return obj
 
-def virtualDiskExists(module, restSession):
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/VirtualDisk/id'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+
+def virtual_disk_exists(module, restSession):
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/VirtualDisk/id'.format(hostName=module.params["ovmHostname"],
+                                                                                  portNr=module.params["ovmPort"])
     vmResults = restSession.get(url)
-    
+
     for obj in vmResults.json():
-    	if 'name' in obj.keys():
-            if obj['name']==module.params['virtualDiskName']:
+        if 'name' in obj.keys():
+            if obj['name'] == module.params['virtualDiskName']:
                 return True
 
     return False
-    
-def virtualDiskInRepositoryExists(module, restSession):
-    repositoryID = getIdFromName(restSession ,module,'Repository',module.params["repositoryName"])
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"],repositoryId=repositoryID['value'])
+
+
+def virtual_disk_in_repository_exists(module, restSession):
+    repositoryID = get_id_from_name(restSession, module, 'Repository', module.params["repositoryName"])
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk'.format(
+        hostName=module.params["ovmHostname"], portNr=module.params["ovmPort"], repositoryId=repositoryID['value'])
     vmResults = restSession.get(url)
-    
+
     for obj in vmResults.json():
-    	if 'id' in obj.keys():
-            if obj['id']['name']==module.params['virtualDiskName']:
+        if 'id' in obj.keys():
+            if obj['id']['name'] == module.params['virtualDiskName']:
                 return True
 
-    return False    
- 
-def virtualDiskHaveMappings(module, restSession):
-    virtualDiskInfo = getVirtualDiskByIdInfo(restSession, module, getIdFromName(restSession ,module,'VirtualDisk',module.params["virtualDiskName"])['value'])
+    return False
+
+
+def virtual_disk_have_mappings(module, restSession):
+    virtualDiskInfo = get_virtual_disk_by_id_info(restSession, module, get_id_from_name(restSession, module, 'VirtualDisk',
+                                                                                        module.params["virtualDiskName"])[
+        'value'])
     virtualDiskMappings = virtualDiskInfo['vmDiskMappingIds']
-    
-    if len(virtualDiskMappings) >=1:
+
+    if len(virtualDiskMappings) >= 1:
         return True
     else:
         return False
-    
-    
-def vmDiskMappingExists(module, restSession):
 
-    vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}/VmDiskMapping'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"],vmId=vmInfo['id']['value'])
+
+def vm_disk_mapping_exists(module, restSession):
+    vmInfo = get_vm_info_by_id(module, get_vm_info_by_name(module, restSession)['value'], restSession)
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}/VmDiskMapping'.format(
+        hostName=module.params["ovmHostname"], portNr=module.params["ovmPort"], vmId=vmInfo['id']['value'])
     vmResults = restSession.get(url)
-    
-    for obj in vmResults.json():
-    	if 'virtualDiskId' in obj.keys():
-            if obj['virtualDiskId']['name']==module.params['virtualDiskName']:
-                return True
 
-    return False      
-
-def repositoryExists(module, restSession):
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/id'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
-    vmResults = restSession.get(url)
-    
     for obj in vmResults.json():
-    	if 'name' in obj.keys():
-            if obj['name']==module.params['repositoryName']:
+        if 'virtualDiskId' in obj.keys():
+            if obj['virtualDiskId']['name'] == module.params['virtualDiskName']:
                 return True
 
     return False
 
-def createVirtualDisk(module, restSession):
 
-    if not virtualDiskExists(module, restSession):
-        repositoryID = getIdFromName(restSession ,module,'Repository',module.params['repositoryName'])
-        url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"],repositoryId=repositoryID['value'])
-    
-        
-        data = {"diskType" : "VIRTUAL_DISK",
+def repository_exists(module, restSession):
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/id'.format(hostName=module.params["ovmHostname"],
+                                                                                 portNr=module.params["ovmPort"])
+    vmResults = restSession.get(url)
+
+    for obj in vmResults.json():
+        if 'name' in obj.keys():
+            if obj['name'] == module.params['repositoryName']:
+                return True
+
+    return False
+
+
+def create_virtual_disk(module, restSession):
+    if not virtual_disk_exists(module, restSession):
+        repositoryID = get_id_from_name(restSession, module, 'Repository', module.params['repositoryName'])
+        url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk'.format(
+            hostName=module.params["ovmHostname"], portNr=module.params["ovmPort"], repositoryId=repositoryID['value'])
+
+        data = {"diskType": "VIRTUAL_DISK",
                 "name": module.params['virtualDiskName'],
                 "size": module.params['virtualDiskSize'] * 1024 * 1024 * 1024,
                 }
-        createVirtualDiskResult = restSession.post(url, data=json.dumps(data),params={"sparse": module.params['virtualSparse']} )
+        createVirtualDiskResult = restSession.post(url, data=json.dumps(data),
+                                                   params={"sparse": module.params['virtualSparse']})
         createVirtualDiskJson = json.loads(createVirtualDiskResult.text)
-        
+
         jobId = createVirtualDiskJson['id']['value']
-        waitModifyJob = waitForJob(createVirtualDiskJson['id']['uri'],restSession, module)
-        
-        jobInfo = getJobInfo(restSession, jobId, module)
-        
+        waitModifyJob = wait_for_job(createVirtualDiskJson['id']['uri'], restSession, module)
+
+        jobInfo = get_job_info(restSession, jobId, module)
+
         return jobInfo['resultId']['value']
     else:
         module.exit_json(msg='vmDisk Exists', changed=False)
-    
-def createVmDiskMapping(module, restSession):
-    if not vmDiskMappingExists(module, restSession):
-        virtualDiskInfo = getVirtualDiskByIdInfo(restSession, module, getIdFromName(restSession ,module,'VirtualDisk',module.params["virtualDiskName"])['value'])
-        vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
-        
-        url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}/VmDiskMapping'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"],vmId=vmInfo['id']['value'])
-        
-        data = {"id":{"type":"com.oracle.ovm.mgr.ws.model.VmDiskMapping"},
-                        "virtualDiskId" :{
-                                            "type":"com.oracle.ovm.mgr.ws.model.VirtualDisk",
-                                            "value" : virtualDiskInfo['id']['value']
-                                         },
-                        "diskTarget" : module.params["vmDiskMappingSlott"],
-                        "name" : module.params["virtualDiskName"],
-                        "description" : module.params["description"],
-                    }
+
+
+def create_vm_disk_mapping(module, restSession):
+    if not vm_disk_mapping_exists(module, restSession):
+        virtualDiskInfo = get_virtual_disk_by_id_info(restSession, module, get_id_from_name(restSession, module, 'VirtualDisk',
+                                                                                            module.params["virtualDiskName"])[
+            'value'])
+        vmInfo = get_vm_info_by_id(module, get_vm_info_by_name(module, restSession)['value'], restSession)
+
+        url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}/VmDiskMapping'.format(
+            hostName=module.params["ovmHostname"], portNr=module.params["ovmPort"], vmId=vmInfo['id']['value'])
+
+        data = {"id": {"type": "com.oracle.ovm.mgr.ws.model.VmDiskMapping"},
+                "virtualDiskId": {
+                    "type": "com.oracle.ovm.mgr.ws.model.VirtualDisk",
+                    "value": virtualDiskInfo['id']['value']
+                },
+                "diskTarget": module.params["vmDiskMappingSlott"],
+                "name": module.params["virtualDiskName"],
+                "description": module.params["description"],
+                }
         createVmdDiskMappingResult = restSession.post(url, data=json.dumps(data))
         createVmdDiskMappingJson = json.loads(createVmdDiskMappingResult.text)
-        waitModifyJob = waitForJob(createVmdDiskMappingJson['id']['uri'],restSession, module)
+        waitModifyJob = wait_for_job(createVmdDiskMappingJson['id']['uri'], restSession, module)
     else:
-         module.exit_json(msg='mapping Exists', changed=False)
+        module.exit_json(msg='mapping Exists', changed=False)
 
-def delVmDiskMapping(restSession, module, vmDiskMappingId):
-    vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{VmId}/VmDiskMapping/{VmDiskMappingId}'.format(VmId=vmInfo['id']['value'], VmDiskMappingId=vmDiskMappingId, hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
-    
+
+def del_vm_disk_mapping(restSession, module, vmDiskMappingId):
+    vmInfo = get_vm_info_by_id(module, get_vm_info_by_name(module, restSession)['value'], restSession)
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{VmId}/VmDiskMapping/{VmDiskMappingId}'.format(
+        VmId=vmInfo['id']['value'], VmDiskMappingId=vmDiskMappingId, hostName=module.params["ovmHostname"],
+        portNr=module.params["ovmPort"])
+
     delVmDiskMappingResult = restSession.delete(url)
     delVmDiskMappingJson = json.loads(delVmDiskMappingResult.text)
-    
-    waitModifyJob = waitForJob(delVmDiskMappingJson['id']['uri'],restSession, module)
 
-def delVmDiskMappingFromVm(restSession, module):
-    vmInfo = getVmInfoById(module,getVmInfoByName(module, restSession)['value'], restSession)
-    virtuelDiskMappInfo = getVmDiskMappingFromVm(module, restSession)
-    
-    if virtualDiskExists(module, restSession):
-        if vmDiskMappingExists(module, restSession):
-            delVmDiskMapping(restSession, module, virtuelDiskMappInfo['id']['value'])
+    waitModifyJob = wait_for_job(delVmDiskMappingJson['id']['uri'], restSession, module)
+
+
+def del_virtual_disk_mapping_from_vm(restSession, module):
+    vmInfo = get_vm_info_by_id(module, get_vm_info_by_name(module, restSession)['value'], restSession)
+    virtuelDiskMappInfo = get_vm_disk_mapping_from_vm(module, restSession)
+
+    if virtual_disk_exists(module, restSession):
+        if vm_disk_mapping_exists(module, restSession):
+            del_vm_disk_mapping(restSession, module, virtuelDiskMappInfo['id']['value'])
             module.exit_json(msg='virtualdiskmapping removed', changed=True)
         else:
             module.exit_json(msg='VirtualDisk MApping on Vm not Exists', changed=False)
     else:
         module.exit_json(msg='VirtualDisk not Exists', changed=False)
 
-def delVirtualDisk(restSession, module):
-    virtualDiskInfo = getVirtualDiskByIdInfo(restSession, module, getIdFromName(restSession ,module,'VirtualDisk',module.params["virtualDiskName"])['value'])
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk/{virtualDiskId}'.format(repositoryId=virtualDiskInfo['repositoryId']['value'], virtualDiskId=virtualDiskInfo['id']['value'], hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+
+def del_virtual_disk(restSession, module):
+    virtualDiskInfo = get_virtual_disk_by_id_info(restSession, module, get_id_from_name(restSession, module, 'VirtualDisk',
+                                                                                        module.params["virtualDiskName"])[
+        'value'])
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Repository/{repositoryId}/VirtualDisk/{virtualDiskId}'.format(
+        repositoryId=virtualDiskInfo['repositoryId']['value'], virtualDiskId=virtualDiskInfo['id']['value'],
+        hostName=module.params["ovmHostname"], portNr=module.params["ovmPort"])
     delVirtualDiskResult = restSession.delete(url)
     delVirtualDiskJson = json.loads(delVirtualDiskResult.text)
-    
-    waitModifyJob = waitForJob(delVirtualDiskJson['id']['uri'],restSession, module)
 
-def delVirtualDiskInRepository(restSession, module):
-    
-    if virtualDiskInRepositoryExists(module, restSession):
-        if not virtualDiskHaveMappings(module, restSession):
-            delVirtualDisk(restSession, module)
+    waitModifyJob = wait_for_job(delVirtualDiskJson['id']['uri'], restSession, module)
+
+
+def del_virtual_disk_in_repository(restSession, module):
+    if virtual_disk_in_repository_exists(module, restSession):
+        if not virtual_disk_have_mappings(module, restSession):
+            del_virtual_disk(restSession, module)
             module.exit_json(msg='VirtualDisk in Repo removed', changed=True)
         else:
             module.exit_json(msg='VirtualDisk in Repo Still Have Mapping', changed=False)
     else:
         module.exit_json(msg='VirtualDisk in Repo not exists', changed=False)
-    
+
+
 def main():
     msg = ['']
     module = AnsibleModule(
-        argument_spec = dict(
-            ovmHostname		        = dict(required=True),
-            ovmPort					= dict(required=True),
-            user                    = dict(required=True),
-            password                = dict(required=True),
-            state                   = dict(choices=["present","absent","mappDisk","removeMappDisk"]),
-            repositoryName          = dict(required=False),
-            description             = dict(required=False),
-            virtualDiskName         = dict(required=False),
-            virtualDiskSize         = dict(required=False),
-            virtualSparse		    = dict(required=False),
-            vmName		            = dict(required=False),
-            vmDiskMappingSlott      = dict(required=False),
+        argument_spec=dict(
+            ovmHostname=dict(required=True),
+            ovmPort			= dict(required=True),user= dict(required=True),
+            password                =dict(required=True),
+            state                   =dict(choices=["present", "absent", "mappDisk", "removeMappDisk"]),
+            repositoryName          =dict(required=False),
+            description             =dict(required=False),
+            virtualDiskName         =dict(required=False),
+            virtualDiskSize         =dict(required=False),virtualSparse		    =dict(required=False),
+            vmName		=dict(required=False),
+            vmDiskMappingSlott      =dict(required=False),
         ),
         supports_check_mode=False
     )
-    
+
     restSession = requests.Session()
     restSession.auth = (module.params["user"], module.params["password"])
     restSession.headers.update({'Accept': 'application/json', 'Content-Type': 'application/json'})
-    restSession.verify=False
+    restSession. verify= False
     if module.params["state"] == "mappDisk":
-        createVmDiskMapping(module, restSession)
+        create_vm_disk_mapping(module, restSession)
         module.exit_json(msg='vmDisk Created', changed=True)
     if module.params["state"] == "present":
-        createVirtualDisk(module, restSession)
+        create_virtual_disk(module, restSession)
         module.exit_json(msg='vmDisk Created', changed=True)
     elif module.params["state"] == "removeMappDisk":
-        delVmDiskMappingFromVm(restSession, module)
+        del_virtual_disk_mapping_from_vm(restSession, module)
     elif module.params["state"] == "absent":
-        delVirtualDiskInRepository(restSession, module)
+        del_virtual_disk_in_repository(restSession, module)
     else:
         module.fail_json(msg="Wrong state")
-    
 
-   
 
-from ansible.module_utils.basic import *
+from ansible.module_utils.basic import \
+
+*
 if __name__ == '__main__':
     main()
