@@ -48,11 +48,16 @@ options:
         required: False    
     virtualDiskSize
         description:
-            - Size of the disk in bytes. If this is a sparse image, this number does not reflect the actual size of the image on disk, but rather the maximum size of the file. For a non-sparse image this is the same as the size of the file on disk.
+            - Size of the disk in bytes. If this is a sparse image, this number does not reflect the actual size of the
+            image on disk, but rather the maximum size of the file. For a non-sparse image this is the same as the size
+            of the file on disk.
         required: False    
     virtualSparse
         description:
-            - parse Allocation or Non-sparse Allocation. Sparse Allocation creates a sparse disk, so the size of the disk is initially small and increases as it is used. Sparse allocation is faster than using Non-Sparse Allocation when creating a virtual machine. Non-Sparse Allocation creates the entire disk when the virtual machine is created, and so is slower than creating a sparse disk
+            - parse Allocation or Non-sparse Allocation. Sparse Allocation creates a sparse disk, so the size of the
+            disk is initially small and increases as it is used. Sparse allocation is faster than using Non-Sparse
+            Allocation when creating a virtual machine. Non-Sparse Allocation creates the entire disk when the
+            virtual machine is created, and so is slower than creating a sparse disk
         required: False    
     vmName
         description:
