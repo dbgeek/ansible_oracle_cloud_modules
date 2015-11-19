@@ -160,8 +160,10 @@ def get_id_from_name(rest_session, module, resource, obj_name):
 
 
 def get_virtual_disk_by_id_info(rest_session, module, virtual_disk_id):
-    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/VirtualDisk/{VirtualDiskId}'.format(
-        virtual_disk_id=virtual_disk_id, hostName=module.params["ovmHostname"], portNr=module.params["ovmPort"])
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/VirtualDisk/{virtual_disk_id}'.format(
+        virtual_disk_id=virtual_disk_id
+        , hostName=module.params["ovmHostname"],
+        portNr=module.params["ovmPort"])
 
     virtual_disk_result = rest_session.get(url)
     virtual_disk_json = json.loads(virtual_disk_result.text)
@@ -273,9 +275,12 @@ def create_virtual_disk(module, rest_session):
 
 def create_vm_disk_mapping(module, rest_session):
     if not vm_disk_mapping_exists(module, rest_session):
-        virtual_disk_info = get_virtual_disk_by_id_info(rest_session, module, get_id_from_name(rest_session, module, 'VirtualDisk',
-                                                                                               module.params["virtualDiskName"])[
-            'value'])
+        virtual_disk_info = get_virtual_disk_by_id_info(rest_session,
+                                                        module,
+                                                        get_id_from_name(rest_session,
+                                                                         module,
+                                                                         'VirtualDisk',
+                                                                         module.params["virtualDiskName"])['value'])
         vm_info = get_vm_info_by_id(module, get_vm_info_by_name(module, rest_session)['value'], rest_session)
 
         url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm/{vmId}/VmDiskMapping'.format(
@@ -382,9 +387,6 @@ def main():
     else:
         module.fail_json(msg="Wrong state")
 
-
-from ansible.module_utils.basic import \
-
-*
+from ansible.module_utils.basic import *
 if __name__ == '__main__':
     main()
