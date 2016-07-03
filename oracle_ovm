@@ -426,16 +426,25 @@ def deleteVm(module, restSession):
             module.exit_json(msg="Vm not stopped", changed=False)
     else:
         module.exit_json(msg="Vm not exists", changed=False)
+def testAuth(restSession, module):
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Job'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+    resultPing = restSession.get(url)
+    if resultPing.status_code == 200:
+        return
+    elif resultPing.status_code == 401:
+        module.fail_json(msg="Wrong username/password")
+    else:
+        module.fail_json(msg=resultPing.status_code)
 def main():
     msg = ['']
     module = AnsibleModule(
         argument_spec = dict(
-            ovmHostname		        = dict(required=True),
-            ovmPort					= dict(default=7002, required=True),
-            user                    = dict(default="admin", required=True),
+            ovmHostname		    = dict(required=True),
+            ovmPort		    = dict(required=True),
+            user                    = dict(required=True),
             password                = dict(required=True),
-            state                   = dict(choices=["present","absent","start", "stop", "restart","scale"]),
-            vmName		            = dict(required=True),
+            state                   = dict(choices=["present","absent","start", "stop", "restart","scale","ping"]),
+            vmName		    = dict(required=True),
             description             = dict(required=False),
             bootOrder               = dict(required=False),
             cpuCount                = dict(required=False),
@@ -478,7 +487,10 @@ def main():
         module.exit_json(msg='vm started', changed=True)
     elif module.params["state"] == "stop":
         stopVm(restSession,module)
-        module.exit_json(msg='vm stopped', changed=True)        
+        module.exit_json(msg='vm stopped', changed=True)
+    elif module.params["state"] == "ping":
+        testAuth(restSession,module)
+        module.exit_json(msg='pong', changed=False)
     else:
         module.fail_json(msg="Wrong state")
     
