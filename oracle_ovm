@@ -387,18 +387,42 @@ def configVm(module, restSession,newVmId):
     data = {"id":{"type":"com.oracle.ovm.mgr.ws.model.Vm",
                   "value": jsonVmInfo['id']['value']
                  },
+            "memory": module.params["memory"],
+            "memoryLimit": module.params["memoryLimit"],
             "name": module.params["vmName"],
             "description": module.params["description"],
             "generation": jsonVmInfo['generation'],
-            "memory": module.params["memory"],
-            "memoryLimit": module.params["memoryLimit"],
             "cpuCount": module.params["cpuCount"],
             "cpuCountLimit": module.params["cpuCountLimit"],
+            "vmDomainType": module.params["vmDomainType"],
            }
     
-    resultModifyVm  = restSession.put(url, data=json.dumps(data))
+    resultModifyVm  = restSession.put(url, data=json.dumps(data), params={"vmId": jsonVmInfo['id']['value']})
     jsonResultModifyVm = json.loads(resultModifyVm.text)
     waitModifyJob = waitForJob(jsonResultModifyVm['id']['uri'],restSession, module)
+
+def createVm(module, restSession):
+
+    url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
+       
+    data = {
+            "repositoryId": {"type": "com.oracle.ovm.mgr.ws.model.Repository",
+                             "value": "0004fb00000300008564bbdbe309abfb"},
+            "serverPoolId": {"type": "com.oracle.ovm.mgr.ws.model.ServerPool",
+                             "value":"0004fb000002000047a9ab9d92c370b8"},
+            "vmDomainType": "XEN_HVM"
+           }
+    
+    resultCreateVm  = restSession.post(url, data=json.dumps(data))
+    jsonResultCreateVm = json.loads(resultCreateVm.text)
+    #module.fail_json(msg=resultCreateVm.status_code)
+    waitModifyJob = waitForJob(jsonResultCreateVm['id']['uri'],restSession, module)
+
+    jobInfo = getJobInfo(restSession, jsonResultCreateVm['id']['value'], module)
+    #module.exit_json(msg=json.dumps(jobInfo), status=False)
+    newVmId = jobInfo['resultId']['value']
+
+    configVm(module, restSession, newVmId)
 
 def deleteVm(module, restSession):
     
@@ -443,7 +467,7 @@ def main():
             ovmPort		    = dict(required=True),
             user                    = dict(required=True),
             password                = dict(required=True),
-            state                   = dict(choices=["present","absent","start", "stop", "restart","scale","ping"]),
+            state                   = dict(choices=["present","absent","start", "stop", "restart","scale","ping","createvm"]),
             vmName		    = dict(required=True),
             description             = dict(required=False),
             bootOrder               = dict(required=False),
@@ -491,6 +515,9 @@ def main():
     elif module.params["state"] == "ping":
         testAuth(restSession,module)
         module.exit_json(msg='pong', changed=False)
+    elif module.params["state"] == "createvm":
+        createVm(module, restSession)
+        module.exit_json(msg='CreateVm', changed=True)
     else:
         module.fail_json(msg="Wrong state")
     
