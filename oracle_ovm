@@ -349,7 +349,7 @@ def cloneVm(module,restSession):
     #    module.exit_json(msg=json.dumps(url), status=False)
         payLoad={
                'vmCloneDefinitionId': getVmCloneDefinitionIdFromName(module, restSession, module.params['vmCloneDefinition']), 
-               'serverPoolId': getIdFromName(restSession, module, 'ServerPool','srvpool')['value'],
+               'serverPoolId': getIdFromName(restSession, module, 'ServerPool', module.params['serverPool'])['value'],
                'createTemplate': False
             } 
     #    module.exit_json(msg=json.dumps(payLoad), status=False)
