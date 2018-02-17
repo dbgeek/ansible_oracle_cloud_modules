@@ -466,12 +466,12 @@ def main():
     msg = ['']
     module = AnsibleModule(
         argument_spec = dict(
-            ovmHostname		    = dict(required=True),
-            ovmPort		    = dict(required=True),
+            ovmHostname		        = dict(required=True),
+            ovmPort		            = dict(required=True),
             user                    = dict(required=True),
             password                = dict(required=True),
             state                   = dict(choices=["present","absent","start", "stop", "restart","scale","ping","createvm"]),
-            vmName		    = dict(required=True),
+            vmName		            = dict(required=True),
             description             = dict(required=False),
             bootOrder               = dict(required=False),
             cpuCount                = dict(required=False),
