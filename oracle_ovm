@@ -404,12 +404,14 @@ def configVm(module, restSession,newVmId):
 def createVm(module, restSession):
 
     url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
-       
+
+    serverPoolId = getIdFromName(module, restSession, module.params["serverPool"])
+    
     data = {
             "repositoryId": {"type": "com.oracle.ovm.mgr.ws.model.Repository",
                              "value": "0004fb00000300008564bbdbe309abfb"},
             "serverPoolId": {"type": "com.oracle.ovm.mgr.ws.model.ServerPool",
-                             "value":"0004fb000002000047a9ab9d92c370b8"},
+                             "value": str(serverPoolId) },
             "vmDomainType": "XEN_HVM"
            }
     
