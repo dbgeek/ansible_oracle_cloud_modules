@@ -406,10 +406,11 @@ def createVm(module, restSession):
     url = 'https://{hostName}:{portNr}/ovm/core/wsapi/rest/Vm'.format(hostName=module.params["ovmHostname"],portNr=module.params["ovmPort"])
 
     serverPoolId = getIdFromName(module, restSession, module.params["serverPool"])
+    repositoryId = getIdFromName(module, restSession, module.params["repository"])
     
     data = {
             "repositoryId": {"type": "com.oracle.ovm.mgr.ws.model.Repository",
-                             "value": "0004fb00000300008564bbdbe309abfb"},
+                             "value": str(repositoryId) },
             "serverPoolId": {"type": "com.oracle.ovm.mgr.ws.model.ServerPool",
                              "value": str(serverPoolId) },
             "vmDomainType": "XEN_HVM"
@@ -495,6 +496,7 @@ def main():
             vmCloneDefinition       = dict(required=False),
             vmTemplate              = dict(required=False),
             serverPool              = dict(required=False),
+            repository              = dict(required=False),
         ),
         supports_check_mode=False
     )
